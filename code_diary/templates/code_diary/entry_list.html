@@ -1,0 +1,102 @@
+{% extends 'code_diary/base.html' %}
+
+{% block title %}Code Diary Entries{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>Code Diary Entries</h1>
+        <p class="lead">Track your daily coding progress and achievements.</p>
+    </div>
+    <div class="col-auto d-flex align-items-center">
+        <a href="{% url 'code_diary:entry_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Entry
+        </a>
+    </div>
+</div>
+
+{% if entries %}
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+        {% for entry in entries %}
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>{{ entry.date|date:"F j, Y" }}</span>
+                        <div>
+                            <a href="{% url 'code_diary:entry_update' entry.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                            <a href="{% url 'code_diary:entry_delete' entry.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="{% url 'code_diary:entry_detail' entry.pk %}" class="text-decoration-none">
+                                {{ entry.title }}
+                            </a>
+                        </h5>
+                        <p class="card-text">{{ entry.content|truncatewords:30 }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">
+                            Technologies: 
+                            {% for tech in entry.technologies.split|slice:":3" %}
+                                <span class="tech-tag">{{ tech }}</span>
+                            {% endfor %}
+                            {% if entry.technologies.split|length > 3 %}
+                                <span class="tech-tag">+{{ entry.technologies.split|length|add:"-3" }}</span>
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">&laquo; First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1">&laquo; First</a>
+                </li>
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <a class="page-link" href="#">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </a>
+            </li>
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1">Next</a>
+                </li>
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" tabindex="-1">Last &raquo;</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+{% else %}
+    <div class="alert alert-info">
+        <p>No diary entries yet. <a href="{% url 'code_diary:entry_create' %}">Create your first entry</a>!</p>
+    </div>
+{% endif %}
+{% endblock %}

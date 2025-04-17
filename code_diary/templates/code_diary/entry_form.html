@@ -1,0 +1,79 @@
+{% extends 'code_diary/base.html' %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit Entry{% else %}New Entry{% endif %} - Code Diary
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>{% if form.instance.pk %}Edit Entry{% else %}New Entry{% endif %}</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label for="{{ form.date.id_for_label }}" class="form-label">Date</label>
+                {{ form.date.errors }}
+                <input type="date" name="{{ form.date.html_name }}" 
+                       value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% endif %}"
+                       class="form-control {% if form.date.errors %}is-invalid{% endif %}"
+                       id="{{ form.date.id_for_label }}">
+                {% if form.date.help_text %}
+                    <div class="form-text">{{ form.date.help_text }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+                {{ form.title.errors }}
+                <input type="text" name="{{ form.title.html_name }}" 
+                       value="{{ form.title.value|default:'' }}"
+                       class="form-control {% if form.title.errors %}is-invalid{% endif %}"
+                       id="{{ form.title.id_for_label }}" 
+                       placeholder="What did you work on today?">
+                {% if form.title.help_text %}
+                    <div class="form-text">{{ form.title.help_text }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.content.id_for_label }}" class="form-label">Content</label>
+                {{ form.content.errors }}
+                <textarea name="{{ form.content.html_name }}" 
+                          class="form-control {% if form.content.errors %}is-invalid{% endif %}"
+                          id="{{ form.content.id_for_label }}" 
+                          rows="6" 
+                          placeholder="Describe what you coded today in detail...">{{ form.content.value|default:'' }}</textarea>
+                {% if form.content.help_text %}
+                    <div class="form-text">{{ form.content.help_text }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.technologies.id_for_label }}" class="form-label">Technologies</label>
+                {{ form.technologies.errors }}
+                <input type="text" name="{{ form.technologies.html_name }}" 
+                       value="{{ form.technologies.value|default:'' }}"
+                       class="form-control {% if form.technologies.errors %}is-invalid{% endif %}"
+                       id="{{ form.technologies.id_for_label }}" 
+                       placeholder="Python, Django, JavaScript, etc. (comma separated)">
+                {% if form.technologies.help_text %}
+                    <div class="form-text">{{ form.technologies.help_text }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'code_diary:entry_list' %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    {% if form.instance.pk %}Update Entry{% else %}Create Entry{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'code_diary/base.html' %}
+
+{% block title %}{{ entry.title }} - Code Diary{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>{{ entry.title }}</h1>
+        <p class="text-muted">
+            <strong>Date:</strong> {{ entry.date|date:"F j, Y" }}
+        </p>
+    </div>
+    <div class="col-auto d-flex align-items-center">
+        <a href="{% url 'code_diary:entry_update' entry.pk %}" class="btn btn-outline-primary me-2">Edit</a>
+        <a href="{% url 'code_diary:entry_delete' entry.pk %}" class="btn btn-outline-danger">Delete</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">What I Coded Today</h5>
+    </div>
+    <div class="card-body">
+        <div class="content">
+            {{ entry.content|linebreaks }}
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Technologies Used</h5>
+    </div>
+    <div class="card-body">
+        {% if entry.technologies %}
+            <div class="technologies">
+                {% for tech in entry.technologies.split %}
+                    <span class="tech-tag">{{ tech }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">No technologies specified.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Entry Information</h5>
+    </div>
+    <div class="card-body">
+        <ul class="list-unstyled">
+            <li><strong>Created:</strong> {{ entry.created_at|date:"F j, Y, g:i a" }}</li>
+            <li><strong>Last Updated:</strong> {{ entry.updated_at|date:"F j, Y, g:i a" }}</li>
+        </ul>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'code_diary:entry_list' %}" class="btn btn-secondary">
+        Back to Entries
+    </a>
+</div>
+{% endblock %}
