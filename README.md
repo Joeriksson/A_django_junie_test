@@ -103,3 +103,9 @@ python -m pytest
 - Responsive design using Bootstrap
 - Admin interface for managing entries
 - Authentication system to protect diary entries
+- User profiles with following/follower functionality
+- View other users' diary entries
+- Follow/unfollow other users
+- Notifications for new entries from users you follow
+- List of all users with follow/unfollow buttons
+- Lists of users you follow and users following you
