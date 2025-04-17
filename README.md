@@ -97,7 +97,9 @@ python -m pytest
 
 ## Features
 
-- Create, view, edit, and delete diary entries
+- View diary entries without logging in
+- Create, edit, and delete diary entries (requires login)
 - Track the date, title, content, and technologies used for each entry
 - Responsive design using Bootstrap
 - Admin interface for managing entries
+- Authentication system to protect diary entries
