@@ -12,6 +12,7 @@ from django.http import JsonResponse, HttpResponseRedirect
 from .models import DiaryEntry, UserProfile
 from .forms import SignUpForm, LoginForm, DiaryEntryForm
 from django.utils import timezone
+from django.contrib.auth import logout
 
 # Create your views here.
 # Authentication Views
@@ -38,6 +39,17 @@ class SignUpView(CreateView):
         response = super().form_valid(form)
         messages.success(self.request, "Account created successfully! You can now log in.")
         return response
+
+class CustomLogoutView(LogoutView):
+    """Custom logout view using our template."""
+    template_name = 'code_diary/auth/logout.html'
+    http_method_names = ['get', 'post']
+
+    def dispatch(self, request, *args, **kwargs):
+        # Ensure the user is properly logged out
+        if request.user.is_authenticated:
+            logout(request)
+        return super().dispatch(request, *args, **kwargs)
 
 # Diary Entry Views
 class HomeView(ListView):

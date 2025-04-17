@@ -1,0 +1,25 @@
+{% extends 'code_diary/base.html' %}
+
+{% block title %}Logged Out - Code Diary{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">Logged Out</h2>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success">
+                    <p>You have been successfully logged out.</p>
+                </div>
+                <p>Thank you for using Code Diary. We hope to see you again soon!</p>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'code_diary:login' %}" class="btn btn-primary">Log In Again</a>
+                    <a href="{% url 'code_diary:home' %}" class="btn btn-outline-secondary">Return to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

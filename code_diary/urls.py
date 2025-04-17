@@ -1,5 +1,4 @@
 from django.urls import path
-from django.contrib.auth.views import LogoutView
 from . import views
 
 app_name = 'code_diary'
@@ -19,7 +18,7 @@ urlpatterns = [
     # Authentication views
     path('signup/', views.SignUpView.as_view(), name='signup'),
     path('login/', views.CustomLoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(), name='logout'),
+    path('logout/', views.CustomLogoutView.as_view(), name='logout'),
 
     # User and following views
     path('users/', views.UserListView.as_view(), name='user_list'),
