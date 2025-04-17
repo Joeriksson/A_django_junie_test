@@ -1,0 +1,113 @@
+{% extends 'code_diary/base.html' %}
+
+{% block title %}Users - Code Diary{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>Users</h1>
+        <p class="lead">Find and follow other users to see their coding journey.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">All Users</h2>
+            </div>
+            <div class="card-body">
+                {% if users %}
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                        {% for user_obj in users %}
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="user-avatar mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                            {{ user_obj.username.0|upper }}
+                                        </div>
+                                        <h5 class="card-title">{{ user_obj.username }}</h5>
+                                        <p class="card-text text-muted">
+                                            {{ user_obj.diary_entries.count }} entries<br>
+                                            {{ user_obj.profile.get_followers.count }} followers
+                                        </p>
+                                        <a href="{% url 'code_diary:user_entries' user_obj.username %}" class="btn btn-outline-primary btn-sm">
+                                            View Profile
+                                        </a>
+                                        
+                                        {% if user.is_authenticated and user != user_obj %}
+                                            {% if user_obj.id in following_ids %}
+                                                <form action="{% url 'code_diary:unfollow_user' user_obj.username %}" method="post" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                                        <i class="bi bi-person-dash"></i> Unfollow
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <form action="{% url 'code_diary:follow_user' user_obj.username %}" method="post" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-primary btn-sm">
+                                                        <i class="bi bi-person-plus"></i> Follow
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if is_paginated %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1">&laquo; First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">&laquo; First</a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <a class="page-link" href="#">
+                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                </a>
+                            </li>
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Next</a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Last &raquo;</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <p>No users found.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

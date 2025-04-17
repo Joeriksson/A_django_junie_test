@@ -9,7 +9,14 @@ from datetime import date
 # Model tests
 class TestDiaryEntryModel(TestCase):
     def setUp(self):
+        # Create a test user
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpassword'
+        )
         self.entry = DiaryEntry.objects.create(
+            user=self.user,
             date=date(2023, 5, 15),
             title="Test Entry",
             content="This is a test entry content.",
@@ -31,12 +38,14 @@ class TestDiaryEntryModel(TestCase):
     def test_diary_entry_ordering(self):
         """Test that diary entries are ordered by date in descending order."""
         DiaryEntry.objects.create(
+            user=self.user,
             date=date(2023, 5, 16),
             title="Newer Entry",
             content="This is a newer entry.",
             technologies="Python, Django"
         )
         DiaryEntry.objects.create(
+            user=self.user,
             date=date(2023, 5, 14),
             title="Older Entry",
             content="This is an older entry.",
@@ -60,12 +69,13 @@ class TestDiaryEntryViews:
             password='testpassword'
         )
         self.entry = DiaryEntry.objects.create(
+            user=self.user,
             date=date(2023, 5, 15),
             title="Test Entry",
             content="This is a test entry content.",
             technologies="Python, Django, pytest"
         )
-        self.list_url = reverse('code_diary:entry_list')
+        self.list_url = reverse('code_diary:my_entries')
         self.detail_url = reverse('code_diary:entry_detail', args=[self.entry.pk])
         self.create_url = reverse('code_diary:entry_create')
         self.update_url = reverse('code_diary:entry_update', args=[self.entry.pk])
@@ -76,7 +86,9 @@ class TestDiaryEntryViews:
         self.client.login(username='testuser', password='testpassword')
 
     def test_entry_list_view(self):
-        """Test that the entry list view returns a 200 status code."""
+        """Test that the entry list view returns a 200 status code when logged in."""
+        # Log in the user
+        self.login()
         response = self.client.get(self.list_url)
         assert response.status_code == 200
         assert 'entries' in response.context
@@ -100,7 +112,7 @@ class TestDiaryEntryViews:
         """Test that the entry create view redirects to login page if not logged in."""
         response = self.client.get(self.create_url)
         assert response.status_code == 302
-        assert '/admin/login/' in response.url
+        assert reverse('code_diary:login') in response.url
 
     def test_entry_create_view_post(self):
         """Test that a new entry can be created when logged in."""
@@ -127,7 +139,7 @@ class TestDiaryEntryViews:
             'technologies': 'Python, Django, pytest'
         })
         assert response.status_code == 302
-        assert '/admin/login/' in response.url
+        assert reverse('code_diary:login') in response.url
         assert DiaryEntry.objects.count() == entry_count  # No new entry created
 
     def test_entry_update_view_get(self):
@@ -142,7 +154,7 @@ class TestDiaryEntryViews:
         """Test that the entry update view redirects to login page if not logged in."""
         response = self.client.get(self.update_url)
         assert response.status_code == 302
-        assert '/admin/login/' in response.url
+        assert reverse('code_diary:login') in response.url
 
     def test_entry_update_view_post(self):
         """Test that an entry can be updated when logged in."""
@@ -169,7 +181,7 @@ class TestDiaryEntryViews:
             'technologies': 'Python, Django, pytest, Updated'
         })
         assert response.status_code == 302
-        assert '/admin/login/' in response.url
+        assert reverse('code_diary:login') in response.url
         self.entry.refresh_from_db()
         assert self.entry.title != 'Updated Test Entry'  # Entry not updated
 
@@ -184,7 +196,7 @@ class TestDiaryEntryViews:
         """Test that the entry delete view redirects to login page if not logged in."""
         response = self.client.get(self.delete_url)
         assert response.status_code == 302
-        assert '/admin/login/' in response.url
+        assert reverse('code_diary:login') in response.url
 
     def test_entry_delete_view_post(self):
         """Test that an entry can be deleted when logged in."""
@@ -201,5 +213,5 @@ class TestDiaryEntryViews:
         entry_count = DiaryEntry.objects.count()
         response = self.client.post(self.delete_url)
         assert response.status_code == 302
-        assert '/admin/login/' in response.url
+        assert reverse('code_diary:login') in response.url
         assert DiaryEntry.objects.count() == entry_count  # Entry not deleted

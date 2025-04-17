@@ -1,0 +1,144 @@
+{% extends 'code_diary/base.html' %}
+
+{% block title %}{{ diary_user.username }}'s Entries - Code Diary{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>{{ diary_user.username }}'s Code Diary</h1>
+        <p class="lead">Viewing {{ diary_user.username }}'s coding journey.</p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if user.is_authenticated and user != diary_user %}
+            {% if is_following %}
+                <form action="{% url 'code_diary:unfollow_user' diary_user.username %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-person-dash"></i> Unfollow
+                    </button>
+                </form>
+            {% else %}
+                <form action="{% url 'code_diary:follow_user' diary_user.username %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-person-plus"></i> Follow
+                    </button>
+                </form>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">User Info</h2>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="user-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+                        {{ diary_user.username.0|upper }}
+                    </div>
+                    <h3 class="h4">{{ diary_user.username }}</h3>
+                    <p class="text-muted">Member since {{ diary_user.date_joined|date:"F j, Y" }}</p>
+                </div>
+                
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Entries
+                        <span class="badge bg-primary rounded-pill">{{ diary_user.diary_entries.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Following
+                        <span class="badge bg-primary rounded-pill">{{ diary_user.profile.following.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Followers
+                        <span class="badge bg-primary rounded-pill">{{ diary_user.profile.get_followers.count }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Diary Entries</h2>
+            </div>
+            <div class="card-body">
+                {% if entries %}
+                    <div class="list-group">
+                        {% for entry in entries %}
+                            <a href="{% url 'code_diary:entry_detail' entry.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">{{ entry.title }}</h5>
+                                    <small>{{ entry.date|date:"F j, Y" }}</small>
+                                </div>
+                                <p class="mb-1">{{ entry.content|truncatewords:30 }}</p>
+                                <small>
+                                    {% for tech in entry.technologies.split|slice:":3" %}
+                                        <span class="tech-tag">{{ tech }}</span>
+                                    {% endfor %}
+                                    {% if entry.technologies.split|length > 3 %}
+                                        <span class="tech-tag">+{{ entry.technologies.split|length|add:"-3" }}</span>
+                                    {% endif %}
+                                </small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if is_paginated %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1">&laquo; First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">&laquo; First</a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <a class="page-link" href="#">
+                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                </a>
+                            </li>
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Next</a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Last &raquo;</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <p>{{ diary_user.username }} hasn't created any diary entries yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

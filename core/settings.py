@@ -63,10 +63,16 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "code_diary.context_processors.notifications",
             ],
         },
     },
 ]
+
+# Authentication settings
+LOGIN_URL = 'code_diary:login'
+LOGIN_REDIRECT_URL = 'code_diary:my_entries'
+LOGOUT_REDIRECT_URL = 'code_diary:home'
 
 WSGI_APPLICATION = "core.wsgi.application"
 

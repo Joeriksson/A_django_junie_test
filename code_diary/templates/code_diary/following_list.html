@@ -1,0 +1,117 @@
+{% extends 'code_diary/base.html' %}
+
+{% block title %}Following - Code Diary{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>People You Follow</h1>
+        <p class="lead">Users you are following and their recent activity.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Following ({{ following|length }})</h2>
+            </div>
+            <div class="card-body">
+                {% if following %}
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                        {% for followed_user in following %}
+                            <div class="col">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <div class="user-avatar mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                                            {{ followed_user.username.0|upper }}
+                                        </div>
+                                        <h5 class="card-title">{{ followed_user.username }}</h5>
+                                        <p class="card-text text-muted">
+                                            {{ followed_user.diary_entries.count }} entries<br>
+                                            {{ followed_user.profile.get_followers.count }} followers
+                                        </p>
+                                        
+                                        {% with recent_entry=followed_user.diary_entries.first %}
+                                            {% if recent_entry %}
+                                                <div class="alert alert-light text-start small">
+                                                    <strong>Latest entry:</strong> 
+                                                    <a href="{% url 'code_diary:entry_detail' recent_entry.pk %}" class="alert-link">
+                                                        {{ recent_entry.title|truncatechars:30 }}
+                                                    </a>
+                                                    <br>
+                                                    <small class="text-muted">{{ recent_entry.date|date:"F j, Y" }}</small>
+                                                </div>
+                                            {% endif %}
+                                        {% endwith %}
+                                        
+                                        <div class="d-grid gap-2">
+                                            <a href="{% url 'code_diary:user_entries' followed_user.username %}" class="btn btn-outline-primary btn-sm">
+                                                View Profile
+                                            </a>
+                                            <form action="{% url 'code_diary:unfollow_user' followed_user.username %}" method="post">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+                                                    <i class="bi bi-person-dash"></i> Unfollow
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if is_paginated %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1">&laquo; First</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">&laquo; First</a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Previous</a>
+                                </li>
+                            {% endif %}
+                            
+                            <li class="page-item active">
+                                <a class="page-link" href="#">
+                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                </a>
+                            </li>
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Next</a>
+                                </li>
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Last &raquo;</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <p>You are not following anyone yet. <a href="{% url 'code_diary:user_list' %}">Find users to follow</a>.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'code_diary/base.html' %}
+
+{% block title %}Home - Code Diary{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>Welcome to Code Diary</h1>
+        <p class="lead">Track your daily coding progress and see what others are working on.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Latest Entries</h2>
+            </div>
+            <div class="card-body">
+                {% if entries %}
+                    <div class="list-group">
+                        {% for entry in entries %}
+                            <a href="{% url 'code_diary:entry_detail' entry.pk %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">{{ entry.title }}</h5>
+                                    <small>{{ entry.date|date:"F j, Y" }}</small>
+                                </div>
+                                <div class="d-flex w-100 justify-content-between">
+                                    <p class="mb-1">{{ entry.content|truncatewords:30 }}</p>
+                                </div>
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <small>
+                                        {% for tech in entry.technologies.split|slice:":3" %}
+                                            <span class="tech-tag">{{ tech }}</span>
+                                        {% endfor %}
+                                        {% if entry.technologies.split|length > 3 %}
+                                            <span class="tech-tag">+{{ entry.technologies.split|length|add:"-3" }}</span>
+                                        {% endif %}
+                                    </small>
+                                    <small>
+                                        <div class="d-flex align-items-center">
+                                            <div class="user-avatar me-1" style="width: 24px; height: 24px; font-size: 0.8rem;">
+                                                {{ entry.user.username.0|default:"U"|upper }}
+                                            </div>
+                                            {% if entry.user and entry.user.username %}
+                                            <a href="{% url 'code_diary:user_entries' entry.user.username %}" class="text-decoration-none">
+                                                {{ entry.user.username }}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted">Unknown User</span>
+                                            {% endif %}
+                                        </div>
+                                    </small>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <p>No diary entries yet. {% if user.is_authenticated %}<a href="{% url 'code_diary:entry_create' %}">Create your first entry</a>!{% else %}Please <a href="{% url 'code_diary:login' %}">login</a> or <a href="{% url 'code_diary:signup' %}">sign up</a> to create entries.{% endif %}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.is_authenticated %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Quick Actions</h2>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'code_diary:entry_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Create New Entry
+                    </a>
+                    <a href="{% url 'code_diary:my_entries' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-journal-text"></i> View My Entries
+                    </a>
+                    <a href="{% url 'code_diary:user_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-people"></i> Find Users to Follow
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">My Stats</h2>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        My Entries
+                        <span class="badge bg-primary rounded-pill">{{ user.diary_entries.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Following
+                        <span class="badge bg-primary rounded-pill">{{ user.profile.following.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Followers
+                        <span class="badge bg-primary rounded-pill">{{ user.profile.get_followers.count }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Join Code Diary</h2>
+            </div>
+            <div class="card-body">
+                <p>Create an account to start tracking your coding journey and connect with other developers.</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{% url 'code_diary:signup' %}" class="btn btn-primary me-md-2">Sign Up</a>
+                    <a href="{% url 'code_diary:login' %}" class="btn btn-outline-primary">Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
