@@ -41,7 +41,13 @@ On Windows:
 ### Install dependencies with uv
 
 ```bash
-uv install
+uv install  # Install regular dependencies
+```
+
+### Install development dependencies (for testing)
+
+```bash
+uv install ".[dev]"  # Install development dependencies
 ```
 
 ## Running the Application
@@ -68,7 +74,7 @@ The application will be available at http://127.0.0.1:8000/
 
 ## Running Tests
 
-The project uses pytest for testing. To run the tests:
+The project uses pytest for testing. Make sure you have installed the development dependencies first (see "Install development dependencies" section above). To run the tests:
 
 ```bash
 pytest
