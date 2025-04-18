@@ -67,14 +67,26 @@ class HomeView(ListView):
         context = super().get_context_data(**kwargs)
         context['now'] = timezone.now()
 
-        # Check for new entries from followed users if logged in
+        # Check for unread entries from followed users if logged in
         if self.request.user.is_authenticated:
             following = self.request.user.profile.following.all()
-            new_entries = DiaryEntry.objects.filter(
-                user__in=following,
-                created_at__gt=timezone.now() - timezone.timedelta(days=1)
-            ).exists()
-            context['new_entries_from_following'] = new_entries
+            if following.exists():
+                # Get entries from followed users created in the last day
+                from .models import ReadEntry
+                recent_entries = DiaryEntry.objects.filter(
+                    user__in=following,
+                    created_at__gt=timezone.now() - timezone.timedelta(days=1)
+                )
+
+                # Filter out entries that the user has already read
+                read_entry_ids = ReadEntry.objects.filter(
+                    user=self.request.user,
+                    entry__in=recent_entries
+                ).values_list('entry_id', flat=True)
+
+                unread_entries = recent_entries.exclude(id__in=read_entry_ids)
+
+                context['new_entries_from_following'] = unread_entries.exists()
 
         return context
 
@@ -124,6 +136,22 @@ class DiaryEntryDetailView(DetailView):
     template_name = 'code_diary/entry_detail.html'
     context_object_name = 'entry'
 
+    def get(self, request, *args, **kwargs):
+        """Mark the entry as read if the user is authenticated and the entry is from someone they follow."""
+        response = super().get(request, *args, **kwargs)
+
+        # Only mark as read if the user is authenticated
+        if request.user.is_authenticated:
+            entry = self.get_object()
+
+            # Only mark as read if the entry is from someone the user follows
+            if entry.user != request.user and request.user.profile.is_following(entry.user):
+                # Create a ReadEntry record if it doesn't exist
+                from .models import ReadEntry
+                ReadEntry.objects.get_or_create(user=request.user, entry=entry)
+
+        return response
+
 class DiaryEntryCreateView(LoginRequiredMixin, CreateView):
     """View for creating a new diary entry."""
     model = DiaryEntry
@@ -133,6 +161,12 @@ class DiaryEntryCreateView(LoginRequiredMixin, CreateView):
 
     def get_success_url(self):
         return reverse_lazy('code_diary:my_entries')
+
+    def get_context_data(self, **kwargs):
+        """Add current date to the context."""
+        context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()
+        return context
 
     def form_valid(self, form):
         """Set the user to the current user before saving."""
@@ -151,6 +185,12 @@ class DiaryEntryUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         """Check that the user is the owner of the entry."""
         entry = self.get_object()
         return entry.user == self.request.user
+
+    def get_context_data(self, **kwargs):
+        """Add current date to the context."""
+        context = super().get_context_data(**kwargs)
+        context['now'] = timezone.now()
+        return context
 
     def get_success_url(self):
         return reverse_lazy('code_diary:entry_detail', kwargs={'pk': self.object.pk})
@@ -251,14 +291,27 @@ def unfollow_user(request, username):
 
 @login_required
 def check_new_entries(request):
-    """AJAX view to check for new entries from followed users."""
+    """AJAX view to check for unread entries from followed users."""
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         following = request.user.profile.following.all()
-        new_entries = DiaryEntry.objects.filter(
-            user__in=following,
-            created_at__gt=timezone.now() - timezone.timedelta(days=1)
-        ).exists()
+        if following.exists():
+            # Get entries from followed users created in the last day
+            from .models import ReadEntry
+            recent_entries = DiaryEntry.objects.filter(
+                user__in=following,
+                created_at__gt=timezone.now() - timezone.timedelta(days=1)
+            )
 
-        return JsonResponse({'new_entries': new_entries})
+            # Filter out entries that the user has already read
+            read_entry_ids = ReadEntry.objects.filter(
+                user=request.user,
+                entry__in=recent_entries
+            ).values_list('entry_id', flat=True)
+
+            unread_entries = recent_entries.exclude(id__in=read_entry_ids)
+
+            return JsonResponse({'new_entries': unread_entries.exists()})
+        else:
+            return JsonResponse({'new_entries': False})
 
     return JsonResponse({'error': 'Invalid request'}, status=400)

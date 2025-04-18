@@ -20,7 +20,7 @@
                 <label for="{{ form.date.id_for_label }}" class="form-label">Date</label>
                 {{ form.date.errors }}
                 <input type="date" name="{{ form.date.html_name }}" 
-                       value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% endif %}"
+                       value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% else %}{{ now|date:'Y-m-d' }}{% endif %}"
                        class="form-control {% if form.date.errors %}is-invalid{% endif %}"
                        id="{{ form.date.id_for_label }}">
                 {% if form.date.help_text %}

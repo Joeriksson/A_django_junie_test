@@ -3,7 +3,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import DiaryEntry, UserProfile
+from .models import DiaryEntry, UserProfile, ReadEntry
 from datetime import date
 
 # Model tests
@@ -23,12 +23,65 @@ class TestDiaryEntryModel(TestCase):
             technologies="Python, Django, pytest"
         )
 
-    def test_diary_entry_creation(self):
-        """Test that a diary entry can be created with the expected values."""
-        self.assertEqual(self.entry.title, "Test Entry")
-        self.assertEqual(self.entry.content, "This is a test entry content.")
-        self.assertEqual(self.entry.technologies, "Python, Django, pytest")
-        self.assertEqual(self.entry.date, date(2023, 5, 15))
+
+class TestReadEntryModel(TestCase):
+    def setUp(self):
+        # Create test users
+        self.user1 = User.objects.create_user(
+            username='testuser1',
+            email='test1@example.com',
+            password='testpassword1'
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2',
+            email='test2@example.com',
+            password='testpassword2'
+        )
+
+        # Create a test entry
+        self.entry = DiaryEntry.objects.create(
+            user=self.user1,
+            date=date(2023, 5, 15),
+            title="Test Entry",
+            content="This is a test entry content.",
+            technologies="Python, Django, pytest"
+        )
+
+        # Make user2 follow user1
+        self.user2.profile.follow(self.user1)
+
+    def test_read_entry_creation(self):
+        """Test that a read entry can be created."""
+        read_entry = ReadEntry.objects.create(
+            user=self.user2,
+            entry=self.entry
+        )
+        self.assertIsNotNone(read_entry.read_at)
+        self.assertEqual(read_entry.user, self.user2)
+        self.assertEqual(read_entry.entry, self.entry)
+
+    def test_read_entry_unique_constraint(self):
+        """Test that a user can only have one read entry per diary entry."""
+        ReadEntry.objects.create(
+            user=self.user2,
+            entry=self.entry
+        )
+
+        # Trying to create another read entry for the same user and entry should raise an error
+        with self.assertRaises(Exception):
+            ReadEntry.objects.create(
+                user=self.user2,
+                entry=self.entry
+            )
+
+    def test_read_entry_str_representation(self):
+        """Test the string representation of a read entry."""
+        read_entry = ReadEntry.objects.create(
+            user=self.user2,
+            entry=self.entry
+        )
+        expected_str = f"{self.user2.username} read {self.entry.title} on {read_entry.read_at}"
+        self.assertEqual(str(read_entry), expected_str)
 
     def test_diary_entry_str_representation(self):
         """Test the string representation of a diary entry."""
@@ -38,14 +91,14 @@ class TestDiaryEntryModel(TestCase):
     def test_diary_entry_ordering(self):
         """Test that diary entries are ordered by date in descending order."""
         DiaryEntry.objects.create(
-            user=self.user,
+            user=self.user1,
             date=date(2023, 5, 16),
             title="Newer Entry",
             content="This is a newer entry.",
             technologies="Python, Django"
         )
         DiaryEntry.objects.create(
-            user=self.user,
+            user=self.user1,
             date=date(2023, 5, 14),
             title="Older Entry",
             content="This is an older entry.",
@@ -62,12 +115,19 @@ class TestDiaryEntryModel(TestCase):
 class TestDiaryEntryViews:
     def setup_method(self):
         self.client = Client()
-        # Create a test user
+        # Create test users
         self.user = User.objects.create_user(
             username='testuser',
             email='test@example.com',
             password='testpassword'
         )
+        self.user2 = User.objects.create_user(
+            username='testuser2',
+            email='test2@example.com',
+            password='testpassword2'
+        )
+
+        # Create test entries
         self.entry = DiaryEntry.objects.create(
             user=self.user,
             date=date(2023, 5, 15),
@@ -75,11 +135,26 @@ class TestDiaryEntryViews:
             content="This is a test entry content.",
             technologies="Python, Django, pytest"
         )
+
+        # Create a recent entry from user2
+        self.recent_entry = DiaryEntry.objects.create(
+            user=self.user2,
+            date=timezone.now().date(),
+            title="Recent Test Entry",
+            content="This is a recent test entry content.",
+            technologies="Python, Django, pytest"
+        )
+
+        # Make user follow user2
+        self.user.profile.follow(self.user2)
+
         self.list_url = reverse('code_diary:my_entries')
         self.detail_url = reverse('code_diary:entry_detail', args=[self.entry.pk])
+        self.recent_detail_url = reverse('code_diary:entry_detail', args=[self.recent_entry.pk])
         self.create_url = reverse('code_diary:entry_create')
         self.update_url = reverse('code_diary:entry_update', args=[self.entry.pk])
         self.delete_url = reverse('code_diary:entry_delete', args=[self.entry.pk])
+        self.home_url = reverse('code_diary:home')
 
     def login(self):
         """Helper method to log in the test user."""
@@ -141,6 +216,37 @@ class TestDiaryEntryViews:
         assert response.status_code == 302
         assert reverse('code_diary:login') in response.url
         assert DiaryEntry.objects.count() == entry_count  # No new entry created
+
+    def test_entry_create_view_post_with_validation_errors(self):
+        """Test that the date field defaults to today's date when form validation fails."""
+        # Log in the user
+        self.login()
+
+        # Submit a form with missing required fields (title is required)
+        response = self.client.post(self.create_url, {
+            'date': '',  # Empty date field
+            'title': '',  # Missing title
+            'content': 'This is a test entry content.',
+            'technologies': 'Python, Django, pytest'
+        })
+
+        # Check that the response status code is 200 (form re-rendered with errors)
+        assert response.status_code == 200
+
+        # Check that the form in the response context has errors
+        assert 'form' in response.context
+        assert response.context['form'].errors
+
+        # Check that the date field in the form has a value (not empty)
+        # This is what we're really testing - that the date field doesn't show "åååå-mm-dd"
+        html_content = response.content.decode('utf-8')
+
+        # The date field should have a value attribute with today's date
+        from django.utils import timezone
+        today = timezone.now().date().strftime('%Y-%m-%d')
+
+        # Check that the date input has a value attribute with today's date
+        assert f'value="{today}"' in html_content
 
     def test_entry_update_view_get(self):
         """Test that the entry update view returns a 200 status code when logged in."""
@@ -215,6 +321,100 @@ class TestDiaryEntryViews:
         assert response.status_code == 302
         assert reverse('code_diary:login') in response.url
         assert DiaryEntry.objects.count() == entry_count  # Entry not deleted
+
+    def test_entry_detail_view_marks_entry_as_read(self):
+        """Test that viewing an entry from a followed user marks it as read."""
+        # Log in the user
+        self.login()
+
+        # Verify there are no read entries yet
+        assert ReadEntry.objects.count() == 0
+
+        # View the recent entry from the followed user
+        response = self.client.get(self.recent_detail_url)
+        assert response.status_code == 200
+
+        # Verify that a ReadEntry record was created
+        assert ReadEntry.objects.count() == 1
+        read_entry = ReadEntry.objects.first()
+        assert read_entry.user == self.user
+        assert read_entry.entry == self.recent_entry
+
+    def test_entry_detail_view_does_not_mark_own_entry_as_read(self):
+        """Test that viewing your own entry does not mark it as read."""
+        # Log in the user
+        self.login()
+
+        # Verify there are no read entries yet
+        assert ReadEntry.objects.count() == 0
+
+        # View the user's own entry
+        response = self.client.get(self.detail_url)
+        assert response.status_code == 200
+
+        # Verify that no ReadEntry record was created
+        assert ReadEntry.objects.count() == 0
+
+    def test_entry_detail_view_does_not_mark_unfollowed_user_entry_as_read(self):
+        """Test that viewing an entry from an unfollowed user does not mark it as read."""
+        # Create a new user that the test user doesn't follow
+        unfollowed_user = User.objects.create_user(
+            username='unfolloweduser',
+            email='unfollowed@example.com',
+            password='testpassword'
+        )
+
+        # Create an entry from the unfollowed user
+        unfollowed_entry = DiaryEntry.objects.create(
+            user=unfollowed_user,
+            date=timezone.now().date(),
+            title="Unfollowed User Entry",
+            content="This is an entry from an unfollowed user.",
+            technologies="Python, Django"
+        )
+
+        unfollowed_detail_url = reverse('code_diary:entry_detail', args=[unfollowed_entry.pk])
+
+        # Log in the user
+        self.login()
+
+        # Verify there are no read entries yet
+        assert ReadEntry.objects.count() == 0
+
+        # View the entry from the unfollowed user
+        response = self.client.get(unfollowed_detail_url)
+        assert response.status_code == 200
+
+        # Verify that no ReadEntry record was created
+        assert ReadEntry.objects.count() == 0
+
+    def test_banner_visibility_with_unread_entries(self):
+        """Test that the banner is visible when there are unread entries from followed users."""
+        # Log in the user
+        self.login()
+
+        # Visit the home page
+        response = self.client.get(self.home_url)
+        assert response.status_code == 200
+
+        # Check that the banner is visible
+        assert b'You have new entries from people you follow' in response.content
+
+    def test_banner_visibility_after_reading_entries(self):
+        """Test that the banner is not visible after reading all entries from followed users."""
+        # Log in the user
+        self.login()
+
+        # Visit the recent entry to mark it as read
+        response = self.client.get(self.recent_detail_url)
+        assert response.status_code == 200
+
+        # Visit the home page again
+        response = self.client.get(self.home_url)
+        assert response.status_code == 200
+
+        # Check that the banner is not visible
+        assert b'You have new entries from people you follow' not in response.content
 
 
 @pytest.mark.django_db

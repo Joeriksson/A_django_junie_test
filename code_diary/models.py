@@ -15,6 +15,7 @@ class DiaryEntry(models.Model):
     technologies = models.CharField(max_length=200, help_text="Technologies used (comma separated)")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    readers = models.ManyToManyField(User, through='ReadEntry', related_name='read_entries')
 
     class Meta:
         ordering = ['-date']
@@ -25,6 +26,20 @@ class DiaryEntry(models.Model):
 
     def get_absolute_url(self):
         return reverse('code_diary:entry_detail', kwargs={'pk': self.pk})
+
+
+class ReadEntry(models.Model):
+    """Model for tracking which entries a user has read."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    entry = models.ForeignKey(DiaryEntry, on_delete=models.CASCADE)
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'entry')
+        verbose_name_plural = "Read Entries"
+
+    def __str__(self):
+        return f"{self.user.username} read {self.entry.title} on {self.read_at}"
 
 
 class UserProfile(models.Model):

@@ -6,11 +6,11 @@ from .models import DiaryEntry, UserProfile
 class SignUpForm(UserCreationForm):
     """Form for user registration."""
     email = forms.EmailField(max_length=254, required=True, help_text='Required. Enter a valid email address.')
-    
+
     class Meta:
         model = User
         fields = ('username', 'email', 'password1', 'password2')
-        
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Add Bootstrap classes to form fields
@@ -19,7 +19,7 @@ class SignUpForm(UserCreationForm):
 
 class LoginForm(AuthenticationForm):
     """Form for user login."""
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Add Bootstrap classes to form fields
@@ -28,7 +28,7 @@ class LoginForm(AuthenticationForm):
 
 class DiaryEntryForm(forms.ModelForm):
     """Form for creating and updating diary entries."""
-    
+
     class Meta:
         model = DiaryEntry
         fields = ['date', 'title', 'content', 'technologies']
@@ -38,3 +38,11 @@ class DiaryEntryForm(forms.ModelForm):
             'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 6}),
             'technologies': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set default date to today if not provided
+        if not self.fields['date'].initial and (not self.data.get('date') or self.errors):
+            from django.utils import timezone
+            today = timezone.now().date()
+            self.fields['date'].initial = today
