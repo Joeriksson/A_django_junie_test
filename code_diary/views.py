@@ -174,6 +174,12 @@ class DiaryEntryCreateView(LoginRequiredMixin, CreateView):
         messages.success(self.request, "Diary entry created successfully!")
         return super().form_valid(form)
 
+    def form_invalid(self, form):
+        """Ensure the date field is set to today's date when form validation fails."""
+        # Make sure the context has the current date
+        context = self.get_context_data(form=form)
+        return self.render_to_response(context)
+
 class DiaryEntryUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     """View for updating an existing diary entry."""
     model = DiaryEntry
@@ -198,6 +204,12 @@ class DiaryEntryUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def form_valid(self, form):
         messages.success(self.request, "Diary entry updated successfully!")
         return super().form_valid(form)
+
+    def form_invalid(self, form):
+        """Ensure the date field is set to today's date when form validation fails."""
+        # Make sure the context has the current date
+        context = self.get_context_data(form=form)
+        return self.render_to_response(context)
 
 class DiaryEntryDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """View for deleting a diary entry."""

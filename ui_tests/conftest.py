@@ -37,20 +37,25 @@ def django_db_setup():
 
 # Cleanup fixture to remove test data after all tests are done
 @pytest.fixture(scope="session", autouse=True)
-def cleanup_test_data(django_db_setup, django_db_blocker):
+async def cleanup_test_data(django_db_setup, django_db_blocker):
     """Clean up test data after all tests are done."""
     # This fixture runs before any tests
     yield
 
     # This part runs after all tests are done
-    with django_db_blocker.unblock():
-        from django.contrib.auth.models import User
-        from code_diary.models import DiaryEntry
+    from asgiref.sync import sync_to_async
+    from django.contrib.auth.models import User
+    from code_diary.models import DiaryEntry
 
-        # Delete all diary entries created by the test user
-        DiaryEntry.objects.filter(user__username=TEST_USER["username"]).delete()
+    @sync_to_async
+    def cleanup_database():
+        with django_db_blocker.unblock():
+            # Delete all diary entries created by the test user
+            DiaryEntry.objects.filter(user__username=TEST_USER["username"]).delete()
 
-        # Delete the test user
-        User.objects.filter(username=TEST_USER["username"]).delete()
+            # Delete the test user
+            User.objects.filter(username=TEST_USER["username"]).delete()
 
-        print(f"Cleaned up test user '{TEST_USER['username']}' and all associated diary entries.")
+            print(f"Cleaned up test user '{TEST_USER['username']}' and all associated diary entries.")
+
+    await cleanup_database()

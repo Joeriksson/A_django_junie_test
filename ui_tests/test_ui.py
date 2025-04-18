@@ -7,41 +7,51 @@ from ui_tests.conftest import TEST_USER
 BASE_URL = "http://127.0.0.1:8000"
 
 @pytest.fixture(scope="function", autouse=True)
-def setup_test_user(django_db_setup, django_db_blocker):
+async def setup_test_user(django_db_setup, django_db_blocker):
     """Create a test user for UI tests."""
     from django.contrib.auth.models import User
 
-    with django_db_blocker.unblock():
-        # Get or create the test user
-        user, created = User.objects.get_or_create(
-            username=TEST_USER["username"],
-            defaults={
-                "email": TEST_USER["email"],
-            }
-        )
+    # Define async functions to handle database operations
+    @sync_to_async
+    def create_test_user():
+        with django_db_blocker.unblock():
+            # Get or create the test user
+            user, created = User.objects.get_or_create(
+                username=TEST_USER["username"],
+                defaults={
+                    "email": TEST_USER["email"],
+                }
+            )
 
-        # Set password (needed even if user already exists)
-        user.set_password(TEST_USER["password"])
-        user.save()
+            # Set password (needed even if user already exists)
+            user.set_password(TEST_USER["password"])
+            user.save()
+            return user
 
-        # Create a test diary entry if it doesn't exist
+    @sync_to_async
+    def create_test_entry(user):
         from code_diary.models import DiaryEntry
         from django.utils import timezone
 
-        # Check if the user already has entries
-        if not DiaryEntry.objects.filter(user=user, title="Test Entry").exists():
-            DiaryEntry.objects.create(
-                user=user,
-                date=timezone.now().date(),
-                title="Test Entry",
-                content="This is a test entry created for UI testing.",
-                technologies="Python, Django, Playwright"
-            )
+        with django_db_blocker.unblock():
+            # Check if the user already has entries
+            if not DiaryEntry.objects.filter(user=user, title="Test Entry").exists():
+                DiaryEntry.objects.create(
+                    user=user,
+                    date=timezone.now().date(),
+                    title="Test Entry",
+                    content="This is a test entry created for UI testing.",
+                    technologies="Python, Django, Playwright"
+                )
 
-        yield user
+    # Create the test user and entry
+    user = await create_test_user()
+    await create_test_entry(user)
 
-        # We don't delete the user after tests to avoid issues with parallel test runs
-        # The get_or_create approach handles this for us
+    yield user
+
+    # We don't delete the user after tests to avoid issues with parallel test runs
+    # The cleanup_test_data fixture in conftest.py handles this for us
 
 def test_home_page_loads(page: Page):
     """Test that the home page loads correctly."""
