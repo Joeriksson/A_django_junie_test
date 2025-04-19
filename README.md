@@ -2,6 +2,8 @@
 
 A web-based diary application to track your daily coding activities and progress.
 
+![Code Diary](img/ScreenShotCodeDiary.png)
+
 ## Description
 
 Code Diary is a Django application that allows you to keep a diary of what you code each day. You can create, view, edit, and delete diary entries, including information about the technologies you used.
